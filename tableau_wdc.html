@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feedback WDC</title>
+    <script src="https://connectors.tableau.com/libs/tableauwdc-2.3.latest.js"></script>
+</head>
+<body>
+    <h2>Customer Feedback Web Data Connector</h2>
+    <p>Click below to load data into Tableau</p>
+    <button id="submitButton">Load Feedback Data into Tableau</button>
+
+    <script>
+        (function () {
+            var myConnector = tableau.makeConnector();
+
+            myConnector.getSchema = function (schemaCallback) {
+                console.log("Defining schema...");
+                const cols = [
+                    { id: "id", dataType: tableau.dataTypeEnum.int },
+                    { id: "name", dataType: tableau.dataTypeEnum.string },
+                    { id: "email", dataType: tableau.dataTypeEnum.string },
+                    { id: "rating", dataType: tableau.dataTypeEnum.int },
+                    { id: "comments", dataType: tableau.dataTypeEnum.string },
+                    { id: "submission_date", dataType: tableau.dataTypeEnum.datetime }
+                ];
+
+                schemaCallback([{
+                    id: "feedbackData",
+                    alias: "Customer Feedback",
+                    columns: cols
+                }]);
+            };
+
+            myConnector.getData = function (table, doneCallback) {
+                console.log("Fetching data from API...");
+                fetch("http://localhost:5000/api/feedback")
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Data received:", data);
+                        const tableData = data.map(row => ({
+                            id: row.id,
+                            name: row.name || "",
+                            email: row.email || "",
+                            rating: row.rating,
+                            comments: row.comments,
+                            submission_date: row.submission_date
+                        }));
+                        table.appendRows(tableData);
+                        doneCallback();
+                    })
+                    .catch(error => {
+                        console.error("Error loading data:", error);
+                        doneCallback(); // Still call it to prevent hanging
+                    });
+            };
+
+            tableau.registerConnector(myConnector);
+
+            document.getElementById("submitButton").addEventListener("click", function () {
+                console.log("Submit clicked. Connecting...");
+                tableau.connectionName = "Customer Feedback Data";
+                tableau.submit();
+            });
+        })();
+    </script>
+</body>
+</html>
